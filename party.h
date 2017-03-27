@@ -12,7 +12,7 @@
 
 class Configuration {
 public:
-  Configuration(std::ifstream config_file);
+  Configuration(std::ifstream& config_file);
   int n, m, d;
   Eigen::MatrixXd normalization;
   std::string mode;
@@ -20,15 +20,17 @@ public:
 
 class Party {
 public:
-  Party(Configuration* config, std::ifstream data_file);
+  Party(Configuration* config, std::ifstream& data_file);
   ~Party();
-  float* ComputeGradient(float* params);
+  double RMSE(Eigen::VectorXd params);
+  double Accuracy(Eigen::VectorXd params);
 
   Eigen::MatrixXd features;
   Eigen::MatrixXd labels;
 
-  Eigen::VectorXd ComputeGradient(Eigen::VectorXd params);
-  Eigen::VectorXd getFeatureVec(int i);
+  Eigen::VectorXd MakePredictions(Eigen::VectorXd params);
+  Eigen::VectorXd ComputeBatchGradient(Eigen::VectorXd params);
+  Eigen::VectorXd ComputeMiniBatchGradient(Eigen::VectorXd params, int exp_batch_size);
   
   int n, m, d;
 };

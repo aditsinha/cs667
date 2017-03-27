@@ -1,7 +1,9 @@
 
 #include "party.h"
 
-Configuration::Configuration(std::ifstream config_file)  {
+std::default_random_engine generator;
+
+Configuration::Configuration(std::ifstream& config_file)  {
   assert(config_file.is_open());
 
   // First read the type of training we are going to do
@@ -20,7 +22,7 @@ Configuration::Configuration(std::ifstream config_file)  {
   }
 }
 
-Party::Party(Configuration* config, std::ifstream data_file)
+Party::Party(Configuration* config, std::ifstream& data_file)
   : features(config->n, config->m)
 {
   assert(data_file.is_open());
@@ -49,24 +51,72 @@ Party::Party(Configuration* config, std::ifstream data_file)
 
     // Check that the label and features are correct
     assert(labels(j) == 0 || labels(j) == 1);
-    assert(getFeatureVec(j).norm() <= 1);
+    assert(features.row(j).norm() <= 1);
   }
-}
-
-Eigen::VectorXd Party::getFeatureVec(int i) {
-  return features.block(i,0,1,d);
 }
 
 double ComputeLogisticFn(Eigen::VectorXd params, Eigen::VectorXd features) {
   return 1 / (1 + exp(-1 * params.dot(features)));
 }
 
-Eigen::VectorXd Party::ComputeGradient(Eigen::VectorXd params) {
+Eigen::VectorXd Party::ComputeBatchGradient(Eigen::VectorXd params) {
+  return ComputeMiniBatchGradient(params, m);
+}
+
+Eigen::VectorXd Party::ComputeMiniBatchGradient(Eigen::VectorXd params, int exp_batch_size) {
+  double p_include = (double)exp_batch_size / m;
+  int num_included = 0;
+  std::uniform_real_distribution<double> urd;
+  
   Eigen::VectorXd grad = Eigen::VectorXd::Zero(d);
   for (int i = 0; i < m; i++) {
-    double error = ComputeLogisticFn(params, getFeatureVec(i)) - labels(i);
-    grad += error * getFeatureVec(i);
+    if (urd(generator) > p_include)  {
+      continue;
+    }
+    
+    double error = ComputeLogisticFn(params, features.row(i)) - labels(i);
+    grad += error * features.row(i);
+    num_included++;
   }
+  assert(num_included > 0);
+
+  grad /= num_included;
 
   return grad;
+}
+
+Eigen::VectorXd Party::MakePredictions(Eigen::VectorXd params) {
+  Eigen::VectorXd pred(m);
+  for (int i = 0; i < m; i++) {
+    pred(i) = ComputeLogisticFn(params, features.row(i));
+  }
+
+  return pred;
+}
+
+double Party::RMSE(Eigen::VectorXd params) {
+  double error = 0;
+  Eigen::VectorXd preds = MakePredictions(params);
+  
+  for (int i = 0; i < m; i++) {
+    error += pow(labels(i) - preds(i), 2);
+  }
+
+  return sqrt(error / m);
+}
+
+double Party::Accuracy(Eigen::VectorXd params) {
+  int errors = 0;
+  Eigen::VectorXd preds = MakePredictions(params);
+
+  for (int i = 0; i < m; i++) {
+    int int_pred = (preds(i) > .5) ? 1 : 0;
+    errors += abs(int_pred - labels(i));
+  }
+
+  return 1 - (double)errors / m;
+}
+
+Party::~Party() {
+  
 }
