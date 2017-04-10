@@ -54,7 +54,8 @@ Eigen::VectorXi CalculateLabelVector(Eigen::Hyperplane<double, Eigen::Dynamic> s
 
   for (int i = 0; i < features.rows(); i++) {
     // Add some noise to the distance for fun
-    labels(i) = (separator.signedDistance(features.row(i)) + normal(g) >= 0) ? 1 : 0;
+    // labels(i) = (separator.signedDistance(features.row(i)) + normal(g) >= 0) ? 1 : 0;
+    labels(i) = (separator.signedDistance(features.row(i)) >= 0) ? 1 : 0;
   }
 
   return labels;
@@ -79,7 +80,7 @@ int main(int argc, char** argv) {
   // choose random hyperplane that goes through the origin
   Eigen::Hyperplane<double, Eigen::Dynamic> separator = GenerateRandomHyperplane(10, generator);
 
-  Eigen::MatrixXd features = GenerateFeatureMatrix(5000, 10, generator);
+  Eigen::MatrixXd features = GenerateFeatureMatrix(100000, 10, generator);
   Eigen::VectorXi labels = CalculateLabelVector(separator, features, generator);
 
   std::ofstream out_file("data.csv");

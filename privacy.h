@@ -17,8 +17,13 @@ struct PrivacyParams {
   // with this privacy over a random sample
   PrivacyParams GetSamplingPrivacyParams(int population_size, int sample_size);
 
+  Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d);
+  Eigen::VectorXd generateMomentsAccountNoise(double l2_sens, double sample_prop, int num_steps, int d);
+
   double epsilon, delta;
 };
 
-Eigen::VectorXd quantizeVector(Eigen::VectorXd old, int bits);
+vector_t* quantizeVector(Eigen::VectorXd vec, int bits);
+Eigen::VectorXd unquantizeVector(vector_t* vec, int bits);
+
 Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d, PrivacyParams pp);

@@ -1,5 +1,6 @@
 
 #include "privacy.h"
+#include "wrapper.h"
 
 #include <random>
 #include <cassert>
@@ -28,17 +29,33 @@ Eigen::VectorXd generateRandomDirection(int d) {
   return dir;
 }
 
-Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d, PrivacyParams pp) {
-  assert(pp.epsilon > 0);
+Eigen::VectorXd PrivacyParams::generateLaplaceNoise(double l1_sens, int d) {
+  assert(epsilon > 0);
   
   Eigen::VectorXd noise_vec(d);
 
   for (int i = 0;i < d; i++) {
-    noise_vec(i) = sampleLaplace(l1_sens / pp.epsilon);
+    noise_vec(i) = sampleLaplace(l1_sens / epsilon);
   }
 
   return noise_vec;
 }
+
+Eigen::VectorXd PrivacyParams::generateMomentsAccountNoise(double l2_sens, double sample_prop, int num_steps, int d) {
+  double c2 = 1.485;
+
+  double sd = c2 * sample_prop * sqrt(num_steps * log(1 / delta)) / epsilon;
+
+  std::normal_distribution<double> normal(0.0, l2_sens * sd);
+
+  Eigen::VectorXd noise_vec(d);
+  for (int i = 0; i < d; i++) {
+    noise_vec(i) = normal(generator);
+  }
+
+  return noise_vec;
+}
+
 
 PrivacyParams PrivacyParams::GetStepPrivacyParams(int repetitions, double step_delta) {
   double remain_delta = delta - repetitions*step_delta;
@@ -58,18 +75,4 @@ PrivacyParams PrivacyParams::GetStepPrivacyParams(int repetitions, double step_d
 PrivacyParams PrivacyParams::GetSamplingPrivacyParams(int population_size, int sample_size) {
   double sample_prop = (double)sample_size / population_size;
   return PrivacyParams(sample_prop*epsilon, sample_prop*delta);
-}
-
-Eigen::VectorXd quantizeVector(Eigen::VectorXd old, int bits) {
-  double shift = pow(2,bits);
-  
-  Eigen::VectorXd quantized(old.size());
-
-  for (int i = 0; i < old.size(); i++) {
-    assert(fabs(old(i)) < 1);
-
-    quantized(i) = round(old(i) * shift) / shift;
-  }
-
-  return quantized;
 }

@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef PARTY_H__
+#define PARTY_H__
 
 #include <cassert>
 #include <iostream>
@@ -12,10 +13,15 @@
 
 class Configuration {
 public:
-  Configuration(std::ifstream& config_file);
+  explicit Configuration(std::ifstream& config_file);
   int n, m, d;
+  double clipping;
   Eigen::MatrixXd normalization;
   std::string mode;
+  int batch_size;
+  int fractional_bits;
+  double epsilon;
+  double delta;
 };
 
 class Party {
@@ -29,8 +35,14 @@ public:
   Eigen::MatrixXd labels;
 
   Eigen::VectorXd MakePredictions(Eigen::VectorXd params);
-  Eigen::VectorXd ComputeBatchGradient(Eigen::VectorXd params);
-  Eigen::VectorXd ComputeMiniBatchGradient(Eigen::VectorXd params, int exp_batch_size);
+  Eigen::VectorXd ComputeGradient(Configuration* config, Eigen::VectorXd params);
   
-  int n, m, d;
+  /* int n, m, d; */
+  /* bool use_mini_batch; */
+  /* int batch_size; */
+
+  /* double should_clip_gradient; */
+  /* double gradient_clip; */
 };
+
+#endif

@@ -9,3 +9,6 @@ gen: gen_main.o
 
 train:  train_main.o party.o train.o privacy.o
 	$(CXX) -o $@ $^
+
+clean:
+	rm *.o gen train
