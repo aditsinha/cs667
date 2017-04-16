@@ -1,0 +1,54 @@
+
+#include "yao.h"
+#include "wrapper.h"
+
+#include <obliv.oh>
+#include <stdio.h>
+#include <sys/time.h>
+
+
+void do_gradient_train(void* args) {
+  gradientProtocolIO* io = args;
+  configuration_t* config = io->config;
+  party_t* party = io->party;
+  model_t* model = io->model;
+
+  struct timeval t1, t2;
+  gettimeofday(&t1, NULL);
+  
+  int steps = GetIterationCount(config);
+  int num_features = GetNumFeatures(config);
+
+  for (int i = 0; i < steps; i++) {
+    int* gradient = ComputeNoisyGradient(party, model);
+
+    obliv int* grad1 = calloc(num_features, sizeof(obliv int));
+    obliv int* grad2 = calloc(num_features, sizeof(obliv int));
+    obliv int* grad_sum = calloc(num_features, sizeof(obliv int));
+
+    feedOblivIntArray(grad1, gradient, num_features, 1);
+    feedOblivIntArray(grad2, gradient, num_features, 2);
+
+    for (int j = 0; j < num_features; j++) {
+      grad_sum[j] = grad1[j] + grad2[j];
+    }
+
+    int* final_gradient = calloc(num_features, sizeof(int));
+    for (int j = 0; j < num_features; j++) {
+      revealOblivInt(final_gradient + j, grad_sum[j], 0);
+    }
+
+    UpdateModel(model, i, final_gradient);
+    free(grad1);
+    free(grad2);
+    free(gradient);
+    free(final_gradient);
+  }
+
+  gettimeofday(&t2, NULL);
+  printf("Gate Count: %d\n", yaoGateCount());
+  long elapsed;
+  elapsed = (t2.tv_sec - t1.tv_sec) * 1000;
+  elapsed += (t2.tv_usec - t1.tv_usec) / 1000;
+  printf("Elapsed Time: %dms\n", elapsed);
+}

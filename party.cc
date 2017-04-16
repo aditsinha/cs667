@@ -1,16 +1,23 @@
 
 #include "party.h"
 
+#include <cassert>
+
 #include <random>
+#include <chrono>
 
 std::default_random_engine generator;
 
-Configuration::Configuration(std::ifstream& config_file)  {
+Configuration::Configuration(std::ifstream& config_file) :
+  privacy(0,0)
+{
   assert(config_file.is_open());
 
   n = m = d = 0;
   clipping = 0;
   batch_size = 0;
+
+  auto seed_begin = std::chrono::high_resolution_clock::now();
 
   std::string line;
   while (std::getline(config_file, line)) {
@@ -41,12 +48,25 @@ Configuration::Configuration(std::ifstream& config_file)  {
       batch_size = std::stoi(value);
     } else if (key == "fractional_bits") {
       fractional_bits = std::stoi(value);
-    } else if (key == "epsilon") {
-      epsilon = std::stof(value);
-    } else if (key == "delta") {
-      delta = std::stof(value);
+    } else if (key == "privacy") {
+      std::string v;
+      std::istringstream s_privacy(value);
+      std::getline(s_privacy, v, ',');
+      privacy.epsilon = std::stof(v);
+      std::getline(s_privacy, v, ',');
+      privacy.delta = std::stof(v);
+    } else if (key == "epochs") {
+      epochs = std::stoi(value);
+    } else if (key == "initial_learning_rate") {
+      initial_learning_rate = std::stof(value);
+    } else if (key == "learning_rate_decay") {
+      learning_rate_decay = std::stof(value);
     }
   }
+
+  auto seed_end = std::chrono::high_resolution_clock::now();
+  generator.seed((seed_end - seed_begin).count());
+
 }
 
 Party::Party(Configuration* config, std::ifstream& data_file)
@@ -56,7 +76,7 @@ Party::Party(Configuration* config, std::ifstream& data_file)
 
   features = Eigen::MatrixXd(config->m, config->d);
   labels = Eigen::VectorXd(config->m);
-  
+
   // assume that data is in CSV format, where the first column is the
   // label
   
@@ -98,9 +118,9 @@ Eigen::VectorXd Party::ComputeGradient(Configuration* config, Eigen::VectorXd pa
     
     double error = ComputeLogisticFn(params, features.row(i)) - labels(i);
     Eigen::VectorXd grad_i = error * features.row(i);
-    double l1_norm = grad_i.lpNorm<2>();
-    if (should_clip_gradient && l1_norm > config->clipping) {
-      grad_i = grad_i * (config->clipping/l1_norm);
+    double norm = grad_i.lpNorm<2>();
+    if (should_clip_gradient && norm > config->clipping) {
+      grad_i = grad_i * (config->clipping/norm);
     }
 
     grad += grad_i;
@@ -114,6 +134,7 @@ Eigen::VectorXd Party::ComputeGradient(Configuration* config, Eigen::VectorXd pa
 }
 
 Eigen::VectorXd Party::MakePredictions(Eigen::VectorXd params) {
+  int m = labels.rows();
   Eigen::VectorXd pred(m);
   for (int i = 0; i < m; i++) {
     pred(i) = ComputeLogisticFn(params, features.row(i));
@@ -123,6 +144,7 @@ Eigen::VectorXd Party::MakePredictions(Eigen::VectorXd params) {
 }
 
 double Party::RMSE(Eigen::VectorXd params) {
+  int m = labels.rows();
   double error = 0;
   Eigen::VectorXd preds = MakePredictions(params);
   
@@ -134,11 +156,12 @@ double Party::RMSE(Eigen::VectorXd params) {
 }
 
 double Party::Accuracy(Eigen::VectorXd params) {
-  int errors = 0;
+  int m = labels.rows(), errors = 0;
   Eigen::VectorXd preds = MakePredictions(params);
 
   for (int i = 0; i < m; i++) {
     int int_pred = (preds(i) > .5) ? 1 : 0;
+    
     errors += abs(int_pred - labels(i));
   }
 

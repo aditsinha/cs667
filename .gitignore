@@ -2,3 +2,8 @@
 *.o
 gen
 train
+full_yao
+gradient_yao
+run.sh
+.dir-locals.el
+*.csv

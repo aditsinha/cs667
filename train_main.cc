@@ -21,8 +21,7 @@ int main(int argc, char** argv) {
   Configuration config(config_file);
   Party p(&config, data_file);
 
-  auto trained = train_single(&p, PrivacyParams(.1, 1.0/(pow(p.m, 2))), 32);
+  auto trained = train_single(&p, &config);
 
   std::cout << "Accuracy " << p.Accuracy(trained) << std::endl;
-  std::cout << "Params " << trained << std::endl;
 }

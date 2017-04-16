@@ -1,10 +1,12 @@
 noise=simple
 num_parties=1
-num_data_rows=10000
+num_data_rows=50
 num_dimensions=10
 normalization=1,1,1,1,1,1,1,1,1,1,
-gradient_clip=.2
-batch_size=250
+gradient_clip=.1
+batch_size=10
+epochs=2
 fractional_bits=10
-epsilon=.01
-delta=.00001
+privacy=.01,.00005
+initial_learning_rate=.1
+learning_rate_decay=.1

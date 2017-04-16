@@ -56,6 +56,14 @@ Eigen::VectorXd PrivacyParams::generateMomentsAccountNoise(double l2_sens, doubl
   return noise_vec;
 }
 
+Eigen::VectorXd PrivacyParams::generateLogisticRegressionNoise(double gradient_clip, int batch_size, int database_size, int num_epochs, int d) {
+  double l2_sens = 2 * gradient_clip / batch_size;
+  double sample_prop = (double)batch_size / database_size;
+  int num_steps = num_epochs * database_size / batch_size;
+
+  return generateMomentsAccountNoise(l2_sens, sample_prop, num_steps, d);
+}
+
 
 PrivacyParams PrivacyParams::GetStepPrivacyParams(int repetitions, double step_delta) {
   double remain_delta = delta - repetitions*step_delta;

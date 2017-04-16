@@ -19,11 +19,9 @@ struct PrivacyParams {
 
   Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d);
   Eigen::VectorXd generateMomentsAccountNoise(double l2_sens, double sample_prop, int num_steps, int d);
-
+  Eigen::VectorXd generateLogisticRegressionNoise(double gradient_clip, int batch_size, int population_size, int num_epochs, int d);
   double epsilon, delta;
 };
 
-vector_t* quantizeVector(Eigen::VectorXd vec, int bits);
-Eigen::VectorXd unquantizeVector(vector_t* vec, int bits);
 
 Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d, PrivacyParams pp);

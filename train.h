@@ -5,5 +5,5 @@
 #include "party.h"
 #include "privacy.h"
 
-Eigen::VectorXd train_single(Party* p, PrivacyParams pp, int quantize_bits);
+Eigen::VectorXd train_single(Party* p, Configuration* c);
 double evaluate_accuracy(Party* p, Eigen::VectorXd params);
