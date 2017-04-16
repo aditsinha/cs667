@@ -4,6 +4,12 @@
 #include "party.h"
 #include "train.h"
 
+double getLearningRate(Configuration* c, int iteration) {
+  int batches_per_epoch = c->m / c->batch_size;
+  int epoch_num = iteration / batches_per_epoch;
+  return c->initial_learning_rate / (1 + c->learning_rate_decay * epoch_num);
+}
+
 double getLearningRate(double initial, double decay, int epoch) {
   return initial / (1 + decay * epoch);
 }
@@ -25,7 +31,7 @@ Eigen::VectorXd train_single(Party* p, Configuration* c) {
     }
 
     std::cout << p->RMSE(params) << std::endl;
-    learning_rate = getLearningRate(c->initial_learning_rate, c->learning_rate_decay, i);
+    learning_rate = getLearningRate(c, i*num_batches_per_epoch);
   }
 
   return params;

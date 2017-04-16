@@ -3,9 +3,9 @@
 #define YAO_H__
 
 #include "wrapper.h"
-#include <obliv.h>
+#include "obliv.h"
 
-#define PRECISION 20
+#include "obliv_math_def.h"
 
 typedef struct {
   configuration_t* config;

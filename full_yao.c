@@ -26,6 +26,11 @@ int main(int argc, char* argv[]) {
   int* labels = calloc(num_entries, sizeof(int));
   QuantizePartyData(party, features, labels, PRECISION);
 
+  /* printf("Data\n"); */
+  /* for (int i = 0; i < num_features; i++) { */
+  /*   printf("%d\n", features[0][i]); */
+  /* } */
+
   connectTcpOrDie(&pd, argv[2], argv[1]);
   fullProtocolIO io = {features, labels, config, party, NULL};
   execYaoProtocol(&pd, do_full_train, &io);

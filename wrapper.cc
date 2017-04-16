@@ -5,6 +5,7 @@
 #include "party.h"
 #include "privacy.h"
 #include "wrapper.h"
+#include "train.h"
   
 configuration_t* GetConfiguration(char* filename) {
   std::ifstream config_file(filename);
@@ -104,10 +105,6 @@ int GetIterationCount(configuration_t* config) {
   return c->epochs * c->m / c->batch_size;
 }
 
-int GetNumFeatures(configuration_t* config) {
-  return ((Configuration*)config->data)->d;
-}
-
 double EvaluateModel(party_t* party, model_t* model) {
   auto p = (Party*)party->data;
 
@@ -151,10 +148,5 @@ void QuantizePartyData(party_t* party, int** features, int* labels, int precisio
 
 double GetLearningRate(configuration_t* config, int iteration) {
   auto c = (Configuration*)config->data;
-
-  // we need to include the number of parties because the batches in
-  // the full yao implementation are over the combined datasets.
-  int batches_per_epoch = c->n * c->m / c->batch_size;
-  int epoch_num = iteration / batches_per_epoch;
-  return c->initial_learning_rate / (1 + c->learning_rate_decay * epoch_num);
+  return getLearningRate(c, iteration);
 }

@@ -6,55 +6,11 @@
 
 #include <obliv.oh>
 
-#define TAYLOR_ORDER 9
+#include "obliv_math_def.h"
 
-double sigmoid_taylor_d[TAYLOR_ORDER+1] = {1.0/2, 1.0/4, 0, -1.0/48, 0, 1.0/480, 0, -17.0/80640, 0, 31.0/1451520};
-int sigmoid_taylor[TAYLOR_ORDER+1];
-
-obliv int mult_oo(obliv int x, obliv int y) {
-  return (x*y) >> PRECISION;
-}
-
-obliv int mult_op(obliv int x, int y) {
-  return (x*y) >> PRECISION;
-}
-
-obliv int evalPolynomial(obliv int x, int* coeffs, int degree) {
-  // assume that the first coefficient in the constant term, the second is the linear term etc.
-  obliv int val = coeffs[degree];
-
-  for (int i = degree-1; i >= 0; i--) {
-    val = mult_oo(val, x);
-    val = val + coeffs[i];
-  }
-  
-  return val;
-}
-
-// use a taylor series to approximate the result
-obliv int oblivious_logistic_fn(obliv int* model, obliv int* features, int num_features) {
-  obliv int dot_product = 0;
-  for (int i = 0; i < num_features; i++) {
-    dot_product += mult_oo(model[i], features[i]);
-  }
-
-  return evalPolynomial(dot_product, sigmoid_taylor, TAYLOR_ORDER);
-}
-
-void load_sigmoid_taylor_coefficients() {
-  int shift = (1 << PRECISION);
-  for (int i = 0; i <= TAYLOR_ORDER; i++) {
-    sigmoid_taylor[i] = sigmoid_taylor_d[i] * shift;
-  }
-}
-
-void add_to_gradient(obliv int* grad, obliv int* model, obliv int* features, obliv int label, int num_features) {
-  obliv int err = oblivious_logistic_fn(model, features, num_features) - (label << PRECISION);
-  for (int k = 0; k < num_features; k++) {
-    grad[k] += mult_oo(err, features[k]);
-  }
-}
-
+#define USE_OBLIV_INT
+#include "obliv_math_func.h"
+#undef USE_OBLIV_INT
 
 void do_full_train(void* args) {
   fullProtocolIO* io = args;
@@ -67,7 +23,7 @@ void do_full_train(void* args) {
   gettimeofday(&t1, NULL);
 
   int num_entries = GetDataRowCount(party);
-  int num_features = GetNumFeatures(party);
+  int num_features = GetDataFeatureCount(party);
 
   /* first the parties need to share their data */
   obliv int* labels_a = calloc(num_entries, sizeof(obliv int));
@@ -101,7 +57,6 @@ void do_full_train(void* args) {
   int batch_size = GetBatchSize(config);
 
   int data_i = 0;
-  
   for (int i = 0; i < iterations; i++) {
     obliv int* gradient = calloc(num_features, sizeof(obliv int));
 
@@ -114,13 +69,9 @@ void do_full_train(void* args) {
       data_i = (data_i + 1) % num_entries;
     }
 
-    double learning_rate_d = GetLearningRate(config, i);
-    int learning_rate = learning_rate_d * (1 << PRECISION);
-    
-    for (int j = 0; j < num_features; j++) {
-      gradient[j] = mult_op(gradient[j], learning_rate) / batch_size / 2;
-      model[j] -= gradient[j];
-    }
+    int learning_rate = GetLearningRate(config, i) * (1 << PRECISION);
+    mult_ovec_p(gradient, -learning_rate / batch_size / 2, num_features);
+    add_ovecs(model, gradient, num_features);
   }
 
   int* reveal_model = calloc(num_features, sizeof(int));

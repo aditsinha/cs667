@@ -28,7 +28,6 @@ extern "C" {
   int GetIterationCount(configuration_t* config);
   int GetBatchSize(configuration_t* config);
   
-  int GetNumFeatures(configuration_t* config);
   double EvaluateModel(party_t* party, model_t* model);
   
   int GetDataFeatureCount(party_t* party);

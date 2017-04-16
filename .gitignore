@@ -4,6 +4,8 @@ gen
 train
 full_yao
 gradient_yao
+full_yao_simulator
 run.sh
 .dir-locals.el
 *.csv
+.depend

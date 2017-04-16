@@ -7,3 +7,5 @@
 
 Eigen::VectorXd train_single(Party* p, Configuration* c);
 double evaluate_accuracy(Party* p, Eigen::VectorXd params);
+
+double getLearningRate(Configuration* config, int iteration);
