@@ -54,8 +54,8 @@ Eigen::VectorXi CalculateLabelVector(Eigen::Hyperplane<double, Eigen::Dynamic> s
 
   for (int i = 0; i < features.rows(); i++) {
     // Add some noise to the distance for fun
-    // labels(i) = (separator.signedDistance(features.row(i)) + normal(g) >= 0) ? 1 : 0;
-    labels(i) = (separator.signedDistance(features.row(i)) >= 0) ? 1 : 0;
+    labels(i) = (separator.signedDistance(features.row(i)) + normal(g) >= 0) ? 1 : 0;
+    // labels(i) = (separator.signedDistance(features.row(i)) >= 0) ? 1 : 0;
   }
 
   return labels;

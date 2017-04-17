@@ -12,6 +12,8 @@ extern "C"
 #include "obliv_math_def.h"
 }
 
+typedef Eigen::Matrix<long, Eigen::Dynamic, Eigen::Dynamic> MatrixXl;
+typedef Eigen::Matrix<long, Eigen::Dynamic, 1> VectorXl;
 
 int main(int argc, char* argv[]) {
   assert(argc == 4);
@@ -24,23 +26,28 @@ int main(int argc, char* argv[]) {
 
   load_sigmoid_taylor_coefficients();
 
-  Eigen::MatrixXi p1_data = (p1.features * (1 << PRECISION)).cast<int>();
-  Eigen::VectorXi p1_labels = (p1.labels).cast<int>();
+  MatrixXl p1_data = (p1.features * (1L << PRECISION)).cast<long>();
+  VectorXl p1_labels = (p1.labels).cast<long>();
 
-  Eigen::MatrixXi p2_data = (p2.features * (1 << PRECISION)).cast<int>();
-  Eigen::VectorXi p2_labels = (p2.labels).cast<int>();
+  MatrixXl p2_data = (p2.features * (1L << PRECISION)).cast<long>();
+  VectorXl p2_labels = (p2.labels).cast<long>();
 
   int iterations = config.epochs * config.m / config.batch_size;
 
-  Eigen::VectorXi model = Eigen::VectorXi::Zero(config.d);
+  VectorXl model = VectorXl::Zero(config.d);
+
+  // std::cout << VectorXl(p1_data.row(0)) << std::endl;
 
   int data_i = 0;
   for (int i = 0; i < iterations; i++) {
-    Eigen::VectorXi gradient = Eigen::VectorXi::Zero(config.d);
-    
+    VectorXl gradient = VectorXl::Zero(config.d);
+
+    Eigen::VectorXd dmodel = model.cast<double>() / (1UL << PRECISION);
+    auto dgrad = p1.ComputeGradient(&config, dmodel) + p2.ComputeGradient(&config, dmodel);
+
     for (int j = 0; j < config.batch_size; j++) {
-      auto p1_row = Eigen::VectorXi(p1_data.row(data_i));
-      auto p2_row = Eigen::VectorXi(p2_data.row(data_i));
+      auto p1_row = VectorXl(p1_data.row(data_i));
+      auto p2_row = VectorXl(p2_data.row(data_i));
       
       add_to_gradient(gradient.data(), model.data(), p1_row.data(), p1_labels(data_i), config.d);
       add_to_gradient(gradient.data(), model.data(), p2_row.data(), p2_labels(data_i), config.d);
@@ -48,12 +55,24 @@ int main(int argc, char* argv[]) {
       data_i = (data_i + 1) % config.m;
     }
 
-    int learning_rate = getLearningRate(&config, i) * (1 << PRECISION);
+    auto idgrad = (gradient.cast<double>()) / (1L << PRECISION);
+    std::cout << idgrad << std::endl << std::endl;
+
+    Eigen::MatrixXd gm(config.d, 2);
+    gm.col(0) = idgrad;
+    gm.col(1) = dgrad;
+
+    std::cout << "Gradients: " << std::endl;
+    std::cout << gm << std::endl;
+
+    std::cout << "Gradient Error: " << (idgrad - dgrad).norm() << std::endl << std::endl;
+
+    long learning_rate = getLearningRate(&config, i) * (1UL << PRECISION);
     mult_ovec_p(gradient.data(), -learning_rate / config.batch_size / 2, gradient.size());
     add_ovecs(model.data(), gradient.data(), model.size());
   }
   
-  Eigen::VectorXd final_model = model.cast<double>() / (1 << PRECISION);
+  Eigen::VectorXd final_model = model.cast<double>() / (1L << PRECISION);
 
   std::cout << "Party 1 Accuracy: " << p1.Accuracy(final_model) << std::endl;
   std::cout << "Party 2 Accuracy: " << p2.Accuracy(final_model) << std::endl;
