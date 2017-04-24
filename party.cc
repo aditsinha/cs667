@@ -16,6 +16,7 @@ Configuration::Configuration(std::ifstream& config_file) :
   n = m = d = 0;
   clipping = 0;
   batch_size = 0;
+  normalization = Eigen::VectorXd::Zero(d);
 
   auto seed_begin = std::chrono::high_resolution_clock::now();
 
@@ -34,6 +35,7 @@ Configuration::Configuration(std::ifstream& config_file) :
       m = std::stoi(value);
     } else if (key == "num_dimensions") {
       d = std::stoi(value);
+      normalization = Eigen::VectorXd::Ones(d);
     } else if (key == "normalization") {
       normalization = Eigen::VectorXd(d);
       std::istringstream is_normalization(value);
@@ -77,7 +79,7 @@ Party::Party(Configuration* config, std::ifstream& data_file)
   features = Eigen::MatrixXd(config->m, config->d);
   labels = Eigen::VectorXd(config->m);
 
-  // assume that data is in CSV format, where the first column is the
+  // assume that data is in CSV format, where the first column  is the
   // label
   
   for (int j = 0; j < config->m; j++) {
@@ -94,7 +96,7 @@ Party::Party(Configuration* config, std::ifstream& data_file)
 
     // Check that the label and features are correct
     assert(labels(j) == 0 || labels(j) == 1);
-    assert(features.row(j).norm() <= 1);
+    // assert(features.row(j).norm() <= 1);
   }
 }
 

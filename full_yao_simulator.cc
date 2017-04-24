@@ -36,14 +36,9 @@ int main(int argc, char* argv[]) {
 
   VectorXl model = VectorXl::Zero(config.d);
 
-  // std::cout << VectorXl(p1_data.row(0)) << std::endl;
-
   int data_i = 0;
   for (int i = 0; i < iterations; i++) {
     VectorXl gradient = VectorXl::Zero(config.d);
-
-    Eigen::VectorXd dmodel = model.cast<double>() / (1UL << PRECISION);
-    auto dgrad = p1.ComputeGradient(&config, dmodel) + p2.ComputeGradient(&config, dmodel);
 
     for (int j = 0; j < config.batch_size; j++) {
       auto p1_row = VectorXl(p1_data.row(data_i));
@@ -55,19 +50,7 @@ int main(int argc, char* argv[]) {
       data_i = (data_i + 1) % config.m;
     }
 
-    auto idgrad = (gradient.cast<double>()) / (1L << PRECISION);
-    std::cout << idgrad << std::endl << std::endl;
-
-    Eigen::MatrixXd gm(config.d, 2);
-    gm.col(0) = idgrad;
-    gm.col(1) = dgrad;
-
-    std::cout << "Gradients: " << std::endl;
-    std::cout << gm << std::endl;
-
-    std::cout << "Gradient Error: " << (idgrad - dgrad).norm() << std::endl << std::endl;
-
-    long learning_rate = getLearningRate(&config, i) * (1UL << PRECISION);
+    long learning_rate = getLearningRate(&config, i) * (1L << PRECISION);
     mult_ovec_p(gradient.data(), -learning_rate / config.batch_size / 2, gradient.size());
     add_ovecs(model.data(), gradient.data(), model.size());
   }

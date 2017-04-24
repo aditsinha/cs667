@@ -18,8 +18,8 @@ struct PrivacyParams {
   PrivacyParams GetSamplingPrivacyParams(int population_size, int sample_size);
 
   Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d);
-  Eigen::VectorXd generateMomentsAccountNoise(double l2_sens, double sample_prop, int num_steps, int d);
   Eigen::VectorXd generateLogisticRegressionNoise(double gradient_clip, int batch_size, int population_size, int num_epochs, int d);
+  double getMomentsAccountStandardDev(double gradient_clip, int batch_size, int database_size, int num_epochs);
   double epsilon, delta;
 };
 

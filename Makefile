@@ -15,7 +15,7 @@ BASE_OBJS=party.o train.o privacy.o
 YAO_OBJS=wrapper.o yao_util.o
 OBLIV_MATH_OBJS=obliv_math_def.o obliv_math_func.h
 
-all: depend gen train gradient_yao full_yao full_yao_simulator
+all: depend gen train gradient_yao full_yao full_yao_simulator format_mnist
 
 depend: .depend
 

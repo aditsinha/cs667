@@ -5,6 +5,7 @@
 #include <random>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 extern std::default_random_engine generator;
 
@@ -41,27 +42,26 @@ Eigen::VectorXd PrivacyParams::generateLaplaceNoise(double l1_sens, int d) {
   return noise_vec;
 }
 
-Eigen::VectorXd PrivacyParams::generateMomentsAccountNoise(double l2_sens, double sample_prop, int num_steps, int d) {
+double PrivacyParams::getMomentsAccountStandardDev(double gradient_clip, int batch_size, int database_size, int num_epochs) {
+  double l2_sens = 2 * gradient_clip / batch_size;
+  double sample_prop = (double)batch_size / database_size;
+  int num_steps = num_epochs * database_size / batch_size;
+
   double c2 = 1.485;
+  return c2 * sample_prop * sqrt(num_steps * log(1 / delta) / epsilon) * l2_sens;
+}
 
-  double sd = c2 * sample_prop * sqrt(num_steps * log(1 / delta)) / epsilon;
 
-  std::normal_distribution<double> normal(0.0, l2_sens * sd);
+Eigen::VectorXd PrivacyParams::generateLogisticRegressionNoise(double gradient_clip, int batch_size, int database_size, int num_epochs, int d) {
+  double sd = getMomentsAccountStandardDev(gradient_clip, batch_size, database_size, num_epochs);
 
   Eigen::VectorXd noise_vec(d);
+  std::normal_distribution<double> normal(0.0, sd);
   for (int i = 0; i < d; i++) {
     noise_vec(i) = normal(generator);
   }
 
   return noise_vec;
-}
-
-Eigen::VectorXd PrivacyParams::generateLogisticRegressionNoise(double gradient_clip, int batch_size, int database_size, int num_epochs, int d) {
-  double l2_sens = 2 * gradient_clip / batch_size;
-  double sample_prop = (double)batch_size / database_size;
-  int num_steps = num_epochs * database_size / batch_size;
-
-  return generateMomentsAccountNoise(l2_sens, sample_prop, num_steps, d);
 }
 
 

@@ -22,6 +22,8 @@ Eigen::VectorXd train_single(Party* p, Configuration* c) {
   int num_batches_per_epoch = c->m / c->batch_size;
 
   for (int i = 0; i < c->epochs; i++) {
+    std::cout << "Epoch " << i << std::endl;
+    
     for (int j = 0; j < num_batches_per_epoch; j++) {
       auto gradient = p->ComputeGradient(c, params);
 
@@ -30,7 +32,7 @@ Eigen::VectorXd train_single(Party* p, Configuration* c) {
       params = params - gradient * learning_rate;
     }
 
-    std::cout << p->RMSE(params) << std::endl;
+    // std::cout << p->RMSE(params) << std::endl;
     learning_rate = getLearningRate(c, i*num_batches_per_epoch);
   }
 

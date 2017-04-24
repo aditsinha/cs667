@@ -33,6 +33,7 @@ extern "C" {
   int GetDataFeatureCount(party_t* party);
   int GetDataRowCount(party_t* party);
   int GetQuantizeBitsPrecision(configuration_t* config);
+  double GetNoiseStdDev(configuration_t* config);
 
   void QuantizePartyData(party_t* party, int** features, int* labels, int precision);
   model_t* UnquantizeModel(configuration_t* config, int* quantized, int precision);

@@ -150,3 +150,8 @@ double GetLearningRate(configuration_t* config, int iteration) {
   auto c = (Configuration*)config->data;
   return getLearningRate(c, iteration);
 }
+
+double GetNoiseStdDev(configuration_t* config) {
+  auto c = (Configuration*)config->data;
+  return c->privacy.getMomentsAccountStandardDev(c->clipping, c->batch_size, c->m, c->epochs);
+}
