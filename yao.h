@@ -16,12 +16,12 @@ typedef struct {
 void do_gradient_train(void* args);
 
 typedef struct {
-  int** features;
-  int* labels;
+  long** features;
+  long* labels;
   configuration_t* config;
   party_t* party;
   
-  int* model;
+  long* model;
 } fullProtocolIO;
 
 void do_full_train(void* args);

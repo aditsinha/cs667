@@ -1,6 +1,7 @@
 
 CXX=g++
-CXXFLAGS=-std=c++11 -g
+CXXFLAGS=-std=c++11 -g -O3
+LDFLAGS=-fopenmp
 
 CC=gcc
 CFLAGS=-g -lstdc++ -lm
@@ -27,19 +28,19 @@ depend: .depend
 include .depend
 
 gen: gen_main.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 train:  train_main.o $(BASE_OBJS)
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 gradient_yao: gradient_yao.oc gradient_yao.c $(BASE_OBJS) $(YAO_OBJS)
-	$(OCC) $(CFLAGS) -I . $^ -o gradient_yao
+	$(OCC) $(LDFLAGS) $(CFLAGS) -I . $^ -o gradient_yao
 
 full_yao: full_yao.oc full_yao.c $(BASE_OBJS) $(YAO_OBJS) $(OBLIV_MATH_OBJS)
-	$(OCC) $(CFLAGS) -I . $^ -o full_yao
+	$(OCC) $(LDFLAGS) $(CFLAGS) -I . $^ -o full_yao
 
 full_yao_simulator: full_yao_simulator.o $(BASE_OBJS) $(OBLIV_MATH_OBJS)
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 yao_util.o: yao_util.c
 	$(OCC) $(CFLAGS) -I . $^ -c

@@ -18,25 +18,20 @@ int main(int argc, char* argv[]) {
   int num_features = GetDataFeatureCount(party);
   int num_entries = GetDataRowCount(party);
 
-  int** features = calloc(num_entries, sizeof(int*));
-  int* feature_data = calloc(num_entries * num_features, sizeof(int));
+  long** features = calloc(num_entries, sizeof(long*));
+  long* feature_data = calloc(num_entries * num_features, sizeof(long));
   for (int i = 0; i < num_entries; i++) {
     features[i] = feature_data + i * num_features;
   }
-  int* labels = calloc(num_entries, sizeof(int));
+  long* labels = calloc(num_entries, sizeof(long));
   QuantizePartyData(party, features, labels, PRECISION);
-
-  /* printf("Data\n"); */
-  /* for (int i = 0; i < num_features; i++) { */
-  /*   printf("%d\n", features[0][i]); */
-  /* } */
 
   connectTcpOrDie(&pd, argv[2], argv[1]);
   fullProtocolIO io = {features, labels, config, party, NULL};
   execYaoProtocol(&pd, do_full_train, &io);
   cleanupProtocol(&pd);
 
-  model_t* model = UnquantizeModel(config, io.model, PRECISION);
+  model_t* model = UnquantizeLongModel(config, io.model, PRECISION);
   double accuracy = EvaluateModel(party, model);
   printf("Model Accuracy: %g\n", accuracy);
 

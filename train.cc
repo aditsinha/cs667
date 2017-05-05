@@ -3,6 +3,7 @@
 
 #include "party.h"
 #include "train.h"
+#include <vector>
 
 double getLearningRate(Configuration* c, int iteration) {
   int batches_per_epoch = c->m / c->batch_size;
@@ -14,8 +15,37 @@ double getLearningRate(double initial, double decay, int epoch) {
   return initial / (1 + decay * epoch);
 }
 
+Eigen::VectorXd gradient_train_simulation(std::vector<Party*> p, Configuration* c) {
+  Eigen::VectorXd params = Eigen::VectorXd::Zero(c->d + 1);
+
+  int num_batches_per_epoch = c->m / c->batch_size;
+
+  int effective_epochs = c->epochs / c->n;
+
+  for (int i = 0; i < effective_epochs; i++) {
+    double learning_rate = getLearningRate(c, i*num_batches_per_epoch);
+    
+    std::cout << "Epoch " << i << std::endl;
+    
+    for (int j = 0; j < num_batches_per_epoch; j++) {
+      Eigen::VectorXd gradient = Eigen::VectorXd::Zero(c->d + 1);
+    
+      for (auto party : p) {
+	auto local_gradient =
+	  party->ComputeGradient(c, params) +
+	  c->privacy.generateLogisticRegressionMPCNoise(c->clipping, c->batch_size, c->m, effective_epochs, c->d, c->n);
+	gradient += reduceVectorPrecision(local_gradient, c->fractional_bits);
+      }
+
+      params = params - gradient * learning_rate;
+    }
+  }
+
+  return params;
+}
+
 Eigen::VectorXd train_single(Party* p, Configuration* c) {
-  Eigen::VectorXd params = Eigen::VectorXd::Zero(p->features.cols());
+  Eigen::VectorXd params = Eigen::VectorXd::Zero(c->d + 1);
 
   float learning_rate = c->initial_learning_rate;
 
@@ -27,12 +57,9 @@ Eigen::VectorXd train_single(Party* p, Configuration* c) {
     for (int j = 0; j < num_batches_per_epoch; j++) {
       auto gradient = p->ComputeGradient(c, params);
 
-      gradient += c->privacy.generateLogisticRegressionNoise(c->clipping, c->batch_size, c->m, c->epochs, c->d);
-      
       params = params - gradient * learning_rate;
     }
 
-    // std::cout << p->RMSE(params) << std::endl;
     learning_rate = getLearningRate(c, i*num_batches_per_epoch);
   }
 

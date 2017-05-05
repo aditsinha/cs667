@@ -35,8 +35,9 @@ extern "C" {
   int GetQuantizeBitsPrecision(configuration_t* config);
   double GetNoiseStdDev(configuration_t* config);
 
-  void QuantizePartyData(party_t* party, int** features, int* labels, int precision);
+  void QuantizePartyData(party_t* party, long** features, long* labels, int precision);
   model_t* UnquantizeModel(configuration_t* config, int* quantized, int precision);
+  model_t* UnquantizeLongModel(configuration_t* config, long* quantized, int precision);
   
   double GetLearningRate(configuration_t* config, int iteration);
 

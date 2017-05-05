@@ -26,7 +26,7 @@ party_t* GetParty(configuration_t* config, char* data_filename) {
 model_t* InitialModel(configuration_t* config) {
   auto c = (Configuration*)config->data;
 
-  auto p = new Eigen::VectorXd(c->d);
+  auto p = new Eigen::VectorXd(c->d+1);
   p->setZero();
   return new model_t{p, c};
 }
@@ -35,11 +35,24 @@ model_t* UnquantizeModel(configuration_t* config, int* quantized, int precision)
   auto c = (Configuration*)config->data;
   model_t* m = InitialModel(config);
   Eigen::VectorXd* params = (Eigen::VectorXd*)m->params;
-  for (int i = 0; i < c->d; i++) {
+  for (int i = 0; i < c->d+1; i++) {
     (*params)(i) = quantized[i];
   }
 
   (*params) /= (1 << precision);
+
+  return m;
+}
+
+model_t* UnquantizeLongModel(configuration_t* config, long* quantized, int precision) {
+  auto c = (Configuration*)config->data;
+  model_t* m = InitialModel(config);
+  Eigen::VectorXd* params = (Eigen::VectorXd*)m->params;
+  for (int i = 0; i < c->d+1; i++) {
+    (*params)(i) = quantized[i];
+  }
+
+  (*params) /= (1L << precision);
 
   return m;
 }
@@ -78,7 +91,7 @@ int* ComputeGradient(party_t* party, model_t* model) {
 
 void UpdateModel(model_t* model, int step_num, int* gradient) {
   auto c = (Configuration*)model->config;
-  auto dgrad = unquantizeVector(gradient, c->d, c->fractional_bits);
+  auto dgrad = unquantizeVector(gradient, c->d+1, c->fractional_bits);
 
   int batches_per_epoch = c->m / c->batch_size;
   int epoch_num = step_num / batches_per_epoch;
@@ -108,7 +121,7 @@ int GetIterationCount(configuration_t* config) {
 double EvaluateModel(party_t* party, model_t* model) {
   auto p = (Party*)party->data;
 
-  return p->Accuracy(*(Eigen::VectorXd*)model->params);
+  return p->ValidationAccuracy(*(Eigen::VectorXd*)model->params);
 }
 
 int GetDataFeatureCount(party_t* party) {
@@ -132,17 +145,17 @@ int GetQuantizeBitsPrecision(configuration_t* config) {
 }
 
 // assume that features and labels have already been allocated and are of the correct size
-void QuantizePartyData(party_t* party, int** features, int* labels, int precision) {
+void QuantizePartyData(party_t* party, long** features, long* labels, int precision) {
   auto p = (Party*)party->data;
 
-  Eigen::MatrixXi int_mat = (p->features * (1 << precision)).cast<int>();
+  Eigen::Matrix<long, Eigen::Dynamic, Eigen::Dynamic> long_mat = (p->features * (1 << precision)).cast<long>();
 
-  for (int i = 0; i < int_mat.rows(); i++) {
-    for (int j = 0; j < int_mat.cols(); j++) {
-      features[i][j] = int_mat(i,j);
+  for (int i = 0; i < long_mat.rows(); i++) {
+    for (int j = 0; j < long_mat.cols(); j++) {
+      features[i][j] = long_mat(i,j);
     }
 
-    labels[i] = (int)p->labels(i);
+    labels[i] = (long)p->labels(i);
   }
 }
 

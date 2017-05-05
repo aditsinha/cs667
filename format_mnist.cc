@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     // first output the label.  Divide into < 5 and >= 5.
     int label = label_file.get();
     std::cout << (int)(label < 5) << ",";
+    std::cerr << label << "\t";
     
     // each image is 28*28
     for (int j = 0; j < 28*28; j++) {

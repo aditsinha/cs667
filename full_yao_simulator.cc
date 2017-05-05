@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <chrono>
 
 #include "party.h"
 #include "train.h"
@@ -34,11 +35,16 @@ int main(int argc, char* argv[]) {
 
   int iterations = config.epochs * config.m / config.batch_size;
 
-  VectorXl model = VectorXl::Zero(config.d);
+  VectorXl model = VectorXl::Zero(config.d+1);
+
+  long regularization = .1 * (1L << PRECISION);
+
+  auto t1 = std::chrono::high_resolution_clock::now();
 
   int data_i = 0;
   for (int i = 0; i < iterations; i++) {
-    VectorXl gradient = VectorXl::Zero(config.d);
+    std::cout << "Step: " << i << std::endl;
+    VectorXl gradient = VectorXl::Zero(config.d+1);
 
     for (int j = 0; j < config.batch_size; j++) {
       auto p1_row = VectorXl(p1_data.row(data_i));
@@ -50,13 +56,22 @@ int main(int argc, char* argv[]) {
       data_i = (data_i + 1) % config.m;
     }
 
+    add_regularization(gradient.data(), model.data(), regularization, config.d);
+
     long learning_rate = getLearningRate(&config, i) * (1L << PRECISION);
     mult_ovec_p(gradient.data(), -learning_rate / config.batch_size / 2, gradient.size());
     add_ovecs(model.data(), gradient.data(), model.size());
   }
+
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::cout << "Elapsed Time: " <<
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms\n";
   
   Eigen::VectorXd final_model = model.cast<double>() / (1L << PRECISION);
 
-  std::cout << "Party 1 Accuracy: " << p1.Accuracy(final_model) << std::endl;
-  std::cout << "Party 2 Accuracy: " << p2.Accuracy(final_model) << std::endl;
+  std::cout << "Party 1 Training Accuracy: " << p1.TrainingAccuracy(final_model) << std::endl;
+  std::cout << "Party 1 Validation Accuracy: " << p1.ValidationAccuracy(final_model) << std::endl;
+
+  std::cout << "Party 2 Training Accuracy: " << p2.TrainingAccuracy(final_model) << std::endl;
+  std::cout << "Party 2 Validatonion Accuracy: " << p2.ValidationAccuracy(final_model) << std::endl;
 }

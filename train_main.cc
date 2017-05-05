@@ -5,6 +5,7 @@
 #include <string>
 #include <cstring>
 #include <cmath>
+#include <vector>
 
 #include <eigen3/Eigen/Dense>
 
@@ -19,9 +20,19 @@ int main(int argc, char** argv) {
   std::ifstream data_file(argv[2]);
 
   Configuration config(config_file);
-  Party p(&config, data_file);
+  std::vector<Party*> parties;
 
-  auto trained = train_single(&p, &config);
+  for (int i = 0; i < config.n; i++) {
+    parties.push_back(new Party(&config, data_file));
+  }
 
-  std::cout << "Accuracy " << p.Accuracy(trained) << std::endl;
+  Eigen::VectorXd trained;
+  if (config.n == 1) {
+    trained = train_single(parties[0], &config);
+  } else {
+    trained = gradient_train_simulation(parties, &config);
+  }
+  
+  std::cout << "Training Accuracy " << parties[0]->TrainingAccuracy(trained) << std::endl;
+  std::cout << "Validation Accuracy " << parties[0]->ValidationAccuracy(trained) << std::endl;
 }

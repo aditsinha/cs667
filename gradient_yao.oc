@@ -17,7 +17,6 @@ obliv int generate_binomial_noise(configuration_t* config, double sd) {
   int bits_generated = 0;
 
   /* printf("Rand bits: %d\n", bits_needed); */
-  /* fflush(stdout); */
 
   obliv int result = 0;
 
@@ -53,8 +52,9 @@ obliv int generate_binomial_noise(configuration_t* config, double sd) {
 }
 
 obliv int* generate_gradient_noise(configuration_t* config, int d, double std_dev) {
-  obliv int* noise = calloc(d, sizeof(obliv int));
-  for (int i = 0; i < d; i++) {
+  obliv int* noise = calloc(d+1, sizeof(obliv int));
+  for (int i = 0; i < d+1; i++) {
+    /* fprintf(stderr, "Noise: %d\n", i); */
     noise[i] = generate_binomial_noise(config, std_dev);
   }
 
@@ -76,26 +76,27 @@ void do_gradient_train(void* args) {
   double noise_sd = GetNoiseStdDev(config);
 
   for (int i = 0; i < steps; i++) {
+    fprintf(stderr, "starting step: %d\n", i);
     int* gradient = ComputeGradient(party, model);
 
-    obliv int* grad1 = calloc(num_features, sizeof(obliv int));
-    obliv int* grad2 = calloc(num_features, sizeof(obliv int));
-    obliv int* grad_sum = calloc(num_features, sizeof(obliv int));
+    obliv int* grad1 = calloc(num_features+1, sizeof(obliv int));
+    obliv int* grad2 = calloc(num_features+1, sizeof(obliv int));
+    obliv int* grad_sum = calloc(num_features+1, sizeof(obliv int));
 
-    feedOblivIntArray(grad1, gradient, num_features, 1);
-    feedOblivIntArray(grad2, gradient, num_features, 2);
+    feedOblivIntArray(grad1, gradient, num_features+1, 1);
+    feedOblivIntArray(grad2, gradient, num_features+1, 2);
 
     obliv int* noise = generate_gradient_noise(config, num_features, noise_sd);
 
-    for (int j = 0; j < num_features; j++) {
+    for (int j = 0; j < num_features+1; j++) {
       grad_sum[j] = grad1[j] + grad2[j] + noise[j];
     }
 
-    int* final_gradient = calloc(num_features, sizeof(int));
+    int* final_gradient = calloc(num_features+1, sizeof(int));
     int noise0;
-    for (int j = 0; j < num_features; j++) {
+    for (int j = 0; j < num_features+1; j++) {
       revealOblivInt(final_gradient + j, grad_sum[j], 0);
-      revealOblivInt(&noise0, noise[0], 0);
+      /* revealOblivInt(&noise0, noise[0], 0); */
     }
 
     UpdateModel(model, i, final_gradient);

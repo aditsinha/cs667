@@ -26,39 +26,41 @@ void do_full_train(void* args) {
   int num_features = GetDataFeatureCount(party);
 
   /* first the parties need to share their data */
-  obliv int* labels_a = calloc(num_entries, sizeof(obliv int));
-  obliv int* labels_b = calloc(num_entries, sizeof(obliv int));
+  obliv long* labels_a = calloc(num_entries, sizeof(obliv long));
+  obliv long* labels_b = calloc(num_entries, sizeof(obliv long));
 
-  obliv int* features_data_a = calloc(num_entries*num_features, sizeof(obliv int));
-  obliv int* features_data_b = calloc(num_entries*num_features, sizeof(obliv int));
+  obliv long* features_data_a = calloc(num_entries*num_features, sizeof(obliv long));
+  obliv long* features_data_b = calloc(num_entries*num_features, sizeof(obliv long));
 
-  obliv int** features_a = calloc(num_entries, sizeof(obliv int*));
-  obliv int** features_b = calloc(num_entries, sizeof(obliv int*));
+  obliv long** features_a = calloc(num_entries, sizeof(obliv long*));
+  obliv long** features_b = calloc(num_entries, sizeof(obliv long*));
 
   for (int i = 0; i < num_entries; i++) {
     features_a[i] = &features_data_a[i*num_features];
     features_b[i] = &features_data_b[i*num_features];
   }
 
-  feedOblivIntArray(labels_a, my_labels, num_entries, 1);
-  feedOblivIntArray(labels_b, my_labels, num_entries, 2);
+  feedOblivLongArray(labels_a, my_labels, num_entries, 1);
+  feedOblivLongArray(labels_b, my_labels, num_entries, 2);
 
-  feedOblivIntArray(features_data_a, *my_features, num_features * num_entries, 1);
-  feedOblivIntArray(features_data_b, *my_features, num_features * num_entries, 2);
+  feedOblivLongArray(features_data_a, *my_features, num_features * num_entries, 1);
+  feedOblivLongArray(features_data_b, *my_features, num_features * num_entries, 2);
   
   // we'll need this for a lot of the math
 
   // precompute the taylor coefficients for the sigmoid function
   load_sigmoid_taylor_coefficients();
   
-  obliv int* model = calloc(num_features, sizeof(obliv int));
+  obliv long* model = calloc(num_features+1, sizeof(obliv long));
 
   int iterations = GetIterationCount(config);
   int batch_size = GetBatchSize(config);
 
   int data_i = 0;
   for (int i = 0; i < iterations; i++) {
-    obliv int* gradient = calloc(num_features, sizeof(obliv int));
+    printf("Iteration: %d\n", i);
+    
+    obliv long* gradient = calloc(num_features+1, sizeof(obliv long));
 
     // don't worry about any privacy here, just do vanilla gradient
     // descent.
@@ -70,14 +72,17 @@ void do_full_train(void* args) {
     }
 
     int learning_rate = GetLearningRate(config, i) * (1 << PRECISION);
-    mult_ovec_p(gradient, -learning_rate / batch_size / 2, num_features);
-    add_ovecs(model, gradient, num_features);
+    mult_ovec_p(gradient, -learning_rate / batch_size / 2, num_features+1);
+
+    add_ovecs(model, gradient, num_features+1);
   }
 
-  int* reveal_model = calloc(num_features, sizeof(int));
-  for (int i = 0; i < num_features; i++) {
-    revealOblivInt(reveal_model + i, model[i], 0);
+  long* reveal_model = calloc(num_features+1, sizeof(long));
+  for (int i = 0; i < num_features+1; i++) {
+    revealOblivLong(reveal_model + i, model[i], 0);
+    /* printf("%d\t", reveal_model[i]); */
   }
+  printf("\n");
 
   io->model = reveal_model;
 

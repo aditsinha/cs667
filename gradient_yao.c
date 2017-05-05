@@ -30,7 +30,11 @@ int main(int argc, char* argv[]) {
   printf("hello\n");
   execYaoProtocol(&pd, do_gradient_train, &io);
 
+  fprintf(stderr, "Completed Yao\n");
+
   cleanupProtocol(&pd);
+
+  
 
   double accuracy = EvaluateModel(party, model);
   printf("Model Accuracy: %g\n", accuracy);

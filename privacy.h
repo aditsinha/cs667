@@ -17,11 +17,13 @@ struct PrivacyParams {
   // with this privacy over a random sample
   PrivacyParams GetSamplingPrivacyParams(int population_size, int sample_size);
 
+  Eigen::VectorXd generateGaussianNoise(double sd, int dim);
   Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d);
   Eigen::VectorXd generateLogisticRegressionNoise(double gradient_clip, int batch_size, int population_size, int num_epochs, int d);
+  Eigen::VectorXd generateLogisticRegressionMPCNoise(double gradient_clip, int batch_size, int population_size, int num_epochs, int d, int n);
   double getMomentsAccountStandardDev(double gradient_clip, int batch_size, int database_size, int num_epochs);
   double epsilon, delta;
 };
 
-
 Eigen::VectorXd generateLaplaceNoise(double l1_sens, int d, PrivacyParams pp);
+Eigen::VectorXd reduceVectorPrecision(Eigen::VectorXd in, int bits);
