@@ -1,4 +1,3 @@
-noise=simple
 num_parties=10
 num_data_rows=500
 num_validation_rows=1000

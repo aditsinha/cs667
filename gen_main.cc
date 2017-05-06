@@ -47,10 +47,10 @@ Eigen::MatrixXd GenerateFeatureMatrix(int n, int d, URNG& g) {
 }
 
 template <class URNG>
-Eigen::VectorXi CalculateLabelVector(Eigen::Hyperplane<double, Eigen::Dynamic> separator, Eigen::MatrixXd features, URNG& g) {
+Eigen::VectorXi CalculateLabelVector(Eigen::Hyperplane<double, Eigen::Dynamic> separator, Eigen::MatrixXd features, double noise, URNG& g) {
   Eigen::VectorXi labels(features.rows());
 
-  std::normal_distribution<double> normal (0.0, 0.1);
+  std::normal_distribution<double> normal (0.0, noise);
 
   for (int i = 0; i < features.rows(); i++) {
     // Add some noise to the distance for fun
@@ -75,13 +75,22 @@ void ExportData(Eigen::VectorXi labels, Eigen::MatrixXd features, std::ofstream&
 
 
 int main(int argc, char** argv) {
+  int dimensions, rows;
+  double noise;
+
+  assert(argc == 4);
+
+  dimensions = std::atoi(argv[1]);
+  rows = std::atoi(argv[2]);
+  noise =std::atof(argv[3]);
+    
   std::default_random_engine generator;
 
   // choose random hyperplane that goes through the origin
   Eigen::Hyperplane<double, Eigen::Dynamic> separator = GenerateRandomHyperplane(10, generator);
 
-  Eigen::MatrixXd features = GenerateFeatureMatrix(100000, 10, generator);
-  Eigen::VectorXi labels = CalculateLabelVector(separator, features, generator);
+  Eigen::MatrixXd features = GenerateFeatureMatrix(dimensions, rows, generator);
+  Eigen::VectorXi labels = CalculateLabelVector(separator, features, noise, generator);
 
   std::ofstream out_file("data.csv");
   ExportData(labels, features, out_file);
