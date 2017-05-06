@@ -17,13 +17,30 @@ typedef Eigen::Matrix<long, Eigen::Dynamic, Eigen::Dynamic> MatrixXl;
 typedef Eigen::Matrix<long, Eigen::Dynamic, 1> VectorXl;
 
 int main(int argc, char* argv[]) {
-  assert(argc == 4);
+  assert(argc >= 3);
   std::ifstream config_file(argv[1]);
   std::ifstream data_file1(argv[2]);
-  std::ifstream data_file2(argv[3]);
 
   Configuration config(config_file);
-  Party p1(&config, data_file1), p2(&config, data_file2);
+  Party p1(&config, data_file1, true);
+  
+  std::ifstream data_file2;
+  if (argc >= 4) {
+    data_file2 = std::ifstream(argv[3]);
+  } else {
+    data_file2.swap(data_file1);
+  }
+
+  Party p2(&config, data_file2, true);
+
+  std::ifstream validation_file;
+  if (argc == 5) {
+    validation_file = std::ifstream(argv[4]);
+  } else {
+    validation_file.swap(data_file2);
+  }
+
+  Party val_party(&config, validation_file, false);
 
   load_sigmoid_taylor_coefficients();
 
@@ -37,7 +54,7 @@ int main(int argc, char* argv[]) {
 
   VectorXl model = VectorXl::Zero(config.d+1);
 
-  long regularization = .1 * (1L << PRECISION);
+  long regularization = config.regularization * (1L << PRECISION);
 
   auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -63,15 +80,20 @@ int main(int argc, char* argv[]) {
     add_ovecs(model.data(), gradient.data(), model.size());
   }
 
+  auto noise_vec =
+    generate_noise_vec(config.d+1,
+		       config.privacy.getRegularizedRegressionStandardDev(config.regularization, 2*config.m),
+		       config.fractional_bits);
+
+  add_ovecs(model.data(), noise_vec, model.size());
+  
   auto t2 = std::chrono::high_resolution_clock::now();
   std::cout << "Elapsed Time: " <<
     std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count() << "ms\n";
   
   Eigen::VectorXd final_model = model.cast<double>() / (1L << PRECISION);
 
-  std::cout << "Party 1 Training Accuracy: " << p1.TrainingAccuracy(final_model) << std::endl;
-  std::cout << "Party 1 Validation Accuracy: " << p1.ValidationAccuracy(final_model) << std::endl;
-
-  std::cout << "Party 2 Training Accuracy: " << p2.TrainingAccuracy(final_model) << std::endl;
-  std::cout << "Party 2 Validatonion Accuracy: " << p2.ValidationAccuracy(final_model) << std::endl;
+  std::cout << "Party 1 Training Accuracy: " << p1.Accuracy(final_model) << std::endl;
+  std::cout << "Party 2 Training Accuracy: " << p2.Accuracy(final_model) << std::endl;
+  std::cout << "Validation Accuracy: " << val_party.Accuracy(final_model) << std::endl;
 }

@@ -15,10 +15,10 @@ configuration_t* GetConfiguration(char* filename) {
   return new configuration_t{c};
 }
 
-party_t* GetParty(configuration_t* config, char* data_filename) {
+party_t* GetParty(configuration_t* config, char* data_filename, int is_training) {
   std::ifstream data_stream(data_filename);
 
-  auto p = new Party((Configuration*)config->data, data_stream);
+  auto p = new Party((Configuration*)config->data, data_stream, is_training);
   
   return new party_t{p};
 }
@@ -121,7 +121,7 @@ int GetIterationCount(configuration_t* config) {
 double EvaluateModel(party_t* party, model_t* model) {
   auto p = (Party*)party->data;
 
-  return p->ValidationAccuracy(*(Eigen::VectorXd*)model->params);
+  return p->Accuracy(*(Eigen::VectorXd*)model->params);
 }
 
 int GetDataFeatureCount(party_t* party) {
@@ -167,4 +167,16 @@ double GetLearningRate(configuration_t* config, int iteration) {
 double GetNoiseStdDev(configuration_t* config) {
   auto c = (Configuration*)config->data;
   return c->privacy.getMomentsAccountStandardDev(c->clipping, c->batch_size, c->m, c->epochs);
+}
+
+double GetRegularizedRegressionNoise(configuration_t* config) {
+  auto c = (Configuration*)config->data;
+
+  // we will only use this wrapper if there are 2 parties
+  return c->privacy.getRegularizedRegressionStandardDev(c->regularization, 2*c->m);
+}
+
+double GetRegularization(configuration_t* config) {
+  auto c = (Configuration*)config->data;
+  return c->regularization;
 }

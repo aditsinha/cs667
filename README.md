@@ -53,10 +53,12 @@ and descriptions.
 * `initial_learning_rate` float.  Learning rate for the training epoch
 * `learning_rate_decay` float.  Decay for time-based learning rate
   schedule
-* `normalization` float OR comma separated list of float with
+* `feature_scale` float OR comma separated list of float with
   `num_dimensions` entries.  Cannot appear before `num_dimensions`.
   Applies a scaling to each column of the training and validation
   features.
+* `regularization` float.  Regularization parameter for L2
+  regularization.
 
 ### Data
 
@@ -76,33 +78,33 @@ Numbers 0-4 are assigned the label 0 and 5-9 are assignet the label 1.
 The following executables that can be used for training models.  Every
 executable reads the following configuration variables
 
-* `./train <config> <data> (<validation>)` Simulates training of a
-  model with the provided configuration and data.  If `num_parties` is
-  0, then we train using a single party without adding any
-  differential privacy.  Otherwise, add noise to guarantee the
-  differential privacy specified by `privacy`.  Reads every party's
-  data from the same data file, with the first `num_data_rows` rows
-  going to the first party, the second block going to the second
+* `./train <config> <data> (<validation>)` Simulates training of an
+  unregularized model with the provided configuration and data.  If
+  `num_parties` is 0, then we train using a single party without
+  adding any differential privacy.  Otherwise, add noise to guarantee
+  the differential privacy specified by `privacy`.  Reads every
+  party's data from the same data file, with the first `num_data_rows`
+  rows going to the first party, the second block going to the second
   party, etc.  If `<validation>` is provided, read validation examples
   from a different file, otherwise read the validation rows from the
   file specified in `<data>` after all training rows have been read.
-* `./gradient_yao <port> <host>|-- <config> <data> (<validation>)`
-  Trains a model using a garbled circuit by calculating gradients
+* `./gradient_yao <port> <host>|-- <config> <data> <validation>`
+  Trains an unregularized model using a garbled circuit by calculating gradients
   locally and updating the model within the circuit.  Ignores the
   `num_parties` option.  The first party must run the programm using
   "--" and the second party must provide the hostname of the first
   party.  The parties should provide different data files.  Only the
   first party will evaluate the model, so `<validation>` is ignored
-  for the second party.  If `<validation>` is not provided by the
-  first party, then read validation examples after the training data.
-* `./full_yao <port> <host>|-- <config> <data> (<validation>)` Trains
-  a model entirely within a garbled circuit.  Ignores the
-  `num_parties`, `gradient_clip`, and `fractional_bits` options.  In
-  order to change the number of bits used after the radix point in
-  fixed point arithmetic, the user must change the `PRECISION`
-  constant in obliv\_math\_def.h.  The same convention of how to run
-  each party as described with the `./gradient_yao` applies to this
-  program.
+  for the second party.
+* `./full_yao <port> <host>|-- <config> <data> <validation>` Trains a
+  regularized model entirely within a garbled circuit.  Ignores the
+  `gradient_clip`, options.  In order to change the number of bits
+  used after the radix point in fixed point arithmetic, the user must
+  change the `PRECISION` constant in obliv\_math\_def.h.  The
+  `fractional_bits` options determines the precision of the noise used
+  to guarantee differential privacy.  The same convention of how to
+  run each party as described with the `./gradient_yao` applies to
+  this program.
 * `./full_yao_simulator <config> <data1> (<data2> (<validation>))`
   Simulates all of the fixed point arithmetic used in the `./full_yao`
   implementation.  Ignores the same configuration options as

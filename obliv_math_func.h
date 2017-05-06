@@ -4,6 +4,9 @@
 
 #include "obliv_math_def.h"
 
+#include <stdlib.h>
+#include <math.h>
+
 #ifdef USE_OBLIV_INT
 #include <obliv.oh>
 typedef obliv long oint;
@@ -104,5 +107,60 @@ static inline void add_regularization(oint* grad, oint* model, long reg_factor, 
     grad[k] = add_oo(grad[k], mult_op(model[k], reg_factor));
   }
 }
+
+static inline oint generate_binomial_noise(double sd, int prec) {
+  // a binomial distribution from an unbiased coin has sd =
+  // .25*sqrt(n), where n is the number of trials.  also, for a random
+  // variable x with sd(x) = s, sd(x/a) = s/a.
+  int bits_needed = ceil((1 << 2*prec) * sd * sd);
+  int bits_generated = 0;
+
+  /* printf("rand bits: %d\n", bits_needed); */
+
+  oint result = 0;
+
+  // we can generate the randomness in groups of 64 using long longs
+  for (; bits_needed > 0; bits_needed -= 64) {
+    // rand max is at least 2^15
+
+#ifdef USE_OBLIV_INT    
+    unsigned long long r1 = rand(), r2 = rand(), r3 = rand(), r4 = rand(), r5 = rand();
+    unsigned long long r = r1 ^ (r2 << 15) ^ (r3 << 30) ^ (r4 << 45) ^ (r5 << 60);
+
+    obliv unsigned long long or1 = feedOblivLLong(r, 1);
+    obliv unsigned long long or2 = feedOblivLLong(r, 2);
+    obliv unsigned long long rand_bits = or1 ^ or2;
+#else
+    unsigned long long r1 = rand(), r2 = rand(), r3 = rand(), r4 = rand(), r5 = rand();
+    unsigned long long rand_bits = r1 ^ (r2 << 15) ^ (r3 << 30) ^ (r4 << 45) ^ (r5 << 60);
+#endif
+    
+    // now get the hamming weight
+    rand_bits = ((rand_bits & 0xAAAAAAAAAAAAAAAALL) >> 1) + (rand_bits & 0x5555555555555555LL);
+    rand_bits = ((rand_bits & 0xCCCCCCCCCCCCCCCCLL) >> 2) + (rand_bits & 0x3333333333333333LL);
+    rand_bits = ((rand_bits & 0xF0F0F0F0F0F0F0F0LL) >> 4) + (rand_bits & 0x0F0F0F0F0F0F0F0FLL);
+    rand_bits = ((rand_bits & 0xFF00FF00FF00FF00LL) >> 8) + (rand_bits & 0x00FF00FF00FF00FFLL);
+    rand_bits = ((rand_bits & 0xFFFF0000FFFF0000LL) >> 16) + (rand_bits & 0x0000FFFF0000FFFFLL);
+    rand_bits = ((rand_bits & 0xFFFFFFFF00000000LL) >> 32) + (rand_bits & 0x00000000FFFFFFFFLL);
+
+    // and add that to the result
+    result += rand_bits;
+    bits_generated += 64;
+  }
+
+  // we want to center the randomness around 0
+  result -= (bits_generated / 2);
+
+  return result;
+}
+
+oint* generate_noise_vec(int d, double std_dev, int prec) {
+  oint* noise = (oint*)calloc(d, sizeof(oint));
+  for (int i = 0; i < d; i++) {
+    noise[i] = generate_binomial_noise(std_dev, prec);
+  }
+  return noise;
+}
+
 
 #endif

@@ -9,12 +9,12 @@ int main(int argc, char* argv[]) {
   ProtocolDesc pd;
 
   if (argc < 5) {
-    fprintf(stderr, "Usage: %s <port> <--|remote host> <config file> <data file>\n", argv[0]);
+    fprintf(stderr, "Usage: %s <port> <--|remote host> <config file> <data file> (<validation file>)\n", argv[0]);
     return 1;
   }
 
   configuration_t* config = GetConfiguration(argv[3]);
-  party_t* party = GetParty(config, argv[4]);
+  party_t* party = GetParty(config, argv[4], 1);
   int num_features = GetDataFeatureCount(party);
   int num_entries = GetDataRowCount(party);
 
@@ -33,7 +33,12 @@ int main(int argc, char* argv[]) {
 
   model_t* model = UnquantizeLongModel(config, io.model, PRECISION);
   double accuracy = EvaluateModel(party, model);
-  printf("Model Accuracy: %g\n", accuracy);
+  printf("Training Accuracy: %g\n", accuracy);
+
+  if (strcmp(argv[2], "--") == 0) {
+    party_t* validation = GetParty(config, argv[5], 0);
+    printf("Validation Accuracy: %g\n", EvaluateModel(validation, model));
+  }
 
   return 0;
 }

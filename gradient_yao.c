@@ -13,31 +13,31 @@ int main(int argc, char* argv[]) {
   ProtocolDesc pd;
 
   if (argc < 5) {
-    fprintf(stderr, "Usage: %s <port> <--|remote host> <config file> <data file>\n", argv[0]);
+    fprintf(stderr, "Usage: %s <port> <--|remote host> <config file> <data file> (<validation file>)\n", argv[0]);
     return 1;
   }
 
   srand(time(NULL));
 
   configuration_t* config = GetConfiguration(argv[3]);
-  party_t* party = GetParty(config, argv[4]);
+  party_t* party = GetParty(config, argv[4], 1);
   model_t* model = InitialModel(config);
 
   connectTcpOrDie(&pd, argv[2], argv[1]);
 
   gradientProtocolIO io = {config, party, model};
   
-  printf("hello\n");
   execYaoProtocol(&pd, do_gradient_train, &io);
 
   fprintf(stderr, "Completed Yao\n");
 
   cleanupProtocol(&pd);
 
-  
-
-  double accuracy = EvaluateModel(party, model);
-  printf("Model Accuracy: %g\n", accuracy);
+  printf("Training Accuracy: %g\n", EvaluateModel(party, model));
+  if (strcmp(argv[2], "--") == 0) {
+    party_t* validation = GetParty(config, argv[5], 0);
+    printf("Validation Accuracy: %g\n", EvaluateModel(validation, model));
+  }
 
   return 0;
 }

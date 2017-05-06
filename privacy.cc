@@ -51,6 +51,13 @@ double PrivacyParams::getMomentsAccountStandardDev(double gradient_clip, int bat
   return c2 * sample_prop * sqrt(num_steps * log(1 / delta) / epsilon) * l2_sens;
 }
 
+double PrivacyParams::getRegularizedRegressionStandardDev(double regularization, int population_size) {
+  double l2_sens = 2 / (sqrt(population_size) * regularization);
+
+  double d = sqrt(2 * log(1.25/delta));
+  return d * l2_sens / epsilon;
+}
+
 Eigen::VectorXd PrivacyParams::generateGaussianNoise(double sd, int dim) {
   Eigen::VectorXd noise_vec(dim);
   std::normal_distribution<double> normal(0.0, sd);

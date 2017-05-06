@@ -22,6 +22,7 @@ struct PrivacyParams {
   Eigen::VectorXd generateLogisticRegressionNoise(double gradient_clip, int batch_size, int population_size, int num_epochs, int d);
   Eigen::VectorXd generateLogisticRegressionMPCNoise(double gradient_clip, int batch_size, int population_size, int num_epochs, int d, int n);
   double getMomentsAccountStandardDev(double gradient_clip, int batch_size, int database_size, int num_epochs);
+  double getRegularizedRegressionStandardDev(double regularization, int population_size);
   double epsilon, delta;
 };
 

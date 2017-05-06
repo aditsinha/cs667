@@ -16,6 +16,7 @@ double getLearningRate(double initial, double decay, int epoch) {
 }
 
 Eigen::VectorXd gradient_train_simulation(std::vector<Party*> p, Configuration* c) {
+  // TODO need to change the way noise is generated
   Eigen::VectorXd params = Eigen::VectorXd::Zero(c->d + 1);
 
   int num_batches_per_epoch = c->m / c->batch_size;
@@ -31,10 +32,25 @@ Eigen::VectorXd gradient_train_simulation(std::vector<Party*> p, Configuration* 
       Eigen::VectorXd gradient = Eigen::VectorXd::Zero(c->d + 1);
     
       for (auto party : p) {
-	auto local_gradient =
-	  party->ComputeGradient(c, params) +
-	  c->privacy.generateLogisticRegressionMPCNoise(c->clipping, c->batch_size, c->m, effective_epochs, c->d, c->n);
+	auto local_gradient = party->ComputeGradient(c, params);
+	if (c->n > 2) {
+	  // and multiparty noise
+	  local_gradient +=
+	    c->privacy.generateLogisticRegressionMPCNoise(c->clipping,
+							  c->batch_size, c->m,
+							  effective_epochs, c->d, c->n);
+	}
+	  
 	gradient += reduceVectorPrecision(local_gradient, c->fractional_bits);
+      }
+
+      if (c->n == 1 || c-> n == 2) {
+	// add solo/two party noise
+	gradient +=
+	  reduceVectorPrecision(c->privacy.generateLogisticRegressionNoise(c->clipping,
+									   c->batch_size, c->m,
+									   effective_epochs, c->d),
+				c->fractional_bits);
       }
 
       params = params - gradient * learning_rate;

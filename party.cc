@@ -16,7 +16,7 @@ Configuration::Configuration(std::ifstream& config_file) :
   n = m = d = 0;
   clipping = 0;
   batch_size = 0;
-  normalization = Eigen::VectorXd::Zero(d);
+  feature_scale = Eigen::VectorXd::Zero(d);
 
   auto seed_begin = std::chrono::high_resolution_clock::now();
 
@@ -37,18 +37,18 @@ Configuration::Configuration(std::ifstream& config_file) :
       val_m = std::stoi(value);
     } else if (key == "num_dimensions") {
       d = std::stoi(value);
-      normalization = Eigen::VectorXd::Ones(d);
-    } else if (key == "normalization") {
+      feature_scale = Eigen::VectorXd::Ones(d);
+    } else if (key == "feature_scale") {
       if (value.find(",") == std::string::npos) {
-	// normalization is a single value
-	normalization *= std::stof(value);
+	// feature_scale is a single value
+	feature_scale *= std::stof(value);
       } else {
-	// normalization is a vector
-	std::istringstream is_normalization(value);
+	// feature_scale is a vector
+	std::istringstream is_feature_scale(value);
 	for (int i = 0; i < d; i++) {
 	  std::string v;
-	  std::getline(is_normalization, v, ',');
-	  normalization(i) = std::stof(v);
+	  std::getline(is_feature_scale, v, ',');
+	  feature_scale(i) = std::stof(v);
 	}
       }
     } else if (key == "gradient_clip") {
@@ -70,6 +70,8 @@ Configuration::Configuration(std::ifstream& config_file) :
       initial_learning_rate = std::stof(value);
     } else if (key == "learning_rate_decay") {
       learning_rate_decay = std::stof(value);
+    } else if (key == "regularization") {
+      regularization = std::stof(value);
     }
   }
 
@@ -77,33 +79,24 @@ Configuration::Configuration(std::ifstream& config_file) :
   generator.seed((seed_end - seed_begin).count());
 }
 
-Party::Party(Configuration* config, std::ifstream& data_file)
+Party::Party(Configuration* config, std::ifstream& data_file, bool is_training)
 {
   assert(data_file.is_open());
 
-  features = Eigen::MatrixXd(config->m, config->d);
-  labels = Eigen::VectorXd(config->m);
+  int num_rows = (is_training) ? config->m : config->val_m;
 
-  val_features = Eigen::MatrixXd(config->val_m, config->d);
-  val_labels = Eigen::VectorXd(config->val_m);
+  features = Eigen::MatrixXd(num_rows, config->d);
+  labels = Eigen::VectorXd(num_rows);
 
   // assume that data is in CSV format, where the first column is the
   // label
-  for (int i = 0; i < config->m; i++) {
+  for (int i = 0; i < num_rows; i++) {
     labels(i) = read_label(config, data_file);
     features.row(i) = read_feature_row(config, data_file);
     // Check the label
     assert(labels(i) == 0 || labels(i) == 1);
   }
-
-  for (int i = 0; i < config->val_m; i++) {
-    val_labels(i) = read_label(config, data_file);
-    val_features.row(i) = read_feature_row(config, data_file);
-    // Check the label
-    assert(val_labels(i) == 0 || val_labels(i) == 1);
-  }
 }
-
 
 double Party::read_label(Configuration* config, std::ifstream& data_file) {
   std::string str;
@@ -118,7 +111,7 @@ Eigen::VectorXd Party::read_feature_row(Configuration* config, std::ifstream& da
   Eigen::VectorXd row(config->d);
   for (int k = 0; k < config->d; k++) {
     std::getline(data_file, str, ',');
-    row(k) = std::stof(str) * config->normalization(k);
+    row(k) = std::stof(str) * config->feature_scale(k);
   }
 
   return row;
@@ -182,37 +175,18 @@ Eigen::VectorXd Party::MakePredictions(Eigen::VectorXd params, Eigen::MatrixXd t
   return pred;
 }
 
-// double Party::RMSE(Eigen::VectorXd params) {
-//   int m = labels.rows();
-//   double error = 0;
-//   Eigen::VectorXd preds = MakePredictions(params);
-  
-//   for (int i = 0; i < m; i++) {
-//     error += pow(labels(i) - preds(i), 2);
-//   }
-
-//   return sqrt(error / m);
-// }
-
-double Party::TrainingAccuracy(Eigen::VectorXd params) {
-  return accuracy(params, features, labels);
-}
-
-double Party::ValidationAccuracy(Eigen::VectorXd params) {
-  return accuracy(params, val_features, val_labels);
-}
-
-double Party::accuracy(Eigen::VectorXd params, Eigen::MatrixXd target_features, Eigen::VectorXd target_labels) {
-  int m = target_labels.rows(), errors = 0;
-  Eigen::VectorXd preds = MakePredictions(params, target_features, target_labels);
+double Party::Accuracy(Eigen::VectorXd params) {
+  int m = labels.rows(), errors = 0;
+  Eigen::VectorXd preds = MakePredictions(params, features, labels);
 
   for (int i = 0; i < m; i++) {
     int int_pred = (preds(i) > .5) ? 1 : 0;
-    
-    errors += abs(int_pred - target_labels(i));
+    errors += abs(int_pred - labels(i));
   }
 
-  return 1 - (double)errors / m; 
+
+
+  return 1 - (double)errors / m;
 }
 
 Party::~Party() {

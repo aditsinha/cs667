@@ -16,6 +16,8 @@ int main(int argc, char** argv) {
   // the first argument is the configuration file
   // the second argument is the data file
 
+  assert(argc == 3 || argc == 4);
+
   std::ifstream config_file(argv[1]);
   std::ifstream data_file(argv[2]);
 
@@ -23,16 +25,21 @@ int main(int argc, char** argv) {
   std::vector<Party*> parties;
 
   for (int i = 0; i < config.n; i++) {
-    parties.push_back(new Party(&config, data_file));
+    parties.push_back(new Party(&config, data_file, true));
   }
 
-  Eigen::VectorXd trained;
-  if (config.n == 1) {
-    trained = train_single(parties[0], &config);
+  std::ifstream validation_file;
+  if (argc == 4) {
+    validation_file = std::ifstream(argv[3]);
   } else {
-    trained = gradient_train_simulation(parties, &config);
+    validation_file.swap(data_file);
   }
+
+  Party validation(&config, validation_file, false);
+
+  Eigen::VectorXd trained;
+  trained = gradient_train_simulation(parties, &config);
   
-  std::cout << "Training Accuracy " << parties[0]->TrainingAccuracy(trained) << std::endl;
-  std::cout << "Validation Accuracy " << parties[0]->ValidationAccuracy(trained) << std::endl;
+  // std::cout << "Training Accuracy " << parties[0]->Accuracy(trained) << std::endl;
+  std::cout << "Validation Accuracy " << validation.Accuracy(trained) << std::endl;
 }

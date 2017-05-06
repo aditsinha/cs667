@@ -77,10 +77,20 @@ void do_full_train(void* args) {
     add_ovecs(model, gradient, num_features+1);
   }
 
+  // add noise to the model based on the regularization constant.  We
+  // are using the gaussian mechanism
+  double noise_sd =  GetRegularizedRegressionNoise(config);
+  int noise_prec = GetQuantizeBitsPrecision(config);
+  obliv long* noise_vec = generate_noise_vec(num_features+1, noise_sd, noise_prec);
+  for (int i = 0; i < num_features+1; i++) {
+    noise_vec[i] = noise_vec[i] << (PRECISION - noise_prec);
+  }
+
+  add_ovecs(model, noise_vec, num_features+1);
+
   long* reveal_model = calloc(num_features+1, sizeof(long));
   for (int i = 0; i < num_features+1; i++) {
     revealOblivLong(reveal_model + i, model[i], 0);
-    /* printf("%d\t", reveal_model[i]); */
   }
   printf("\n");
 
