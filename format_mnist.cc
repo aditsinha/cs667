@@ -13,6 +13,11 @@ int main(int argc, char** argv) {
   std::ifstream feature_file(argv[1]);
   std::ifstream label_file(argv[2]);
 
+  std::ofstream digit_files[10];
+  for (int i = 0; i < 9 ; i++) {
+    digit_files[i] = std::ofstream("mnist_digit_" + std::to_string(i) + ".csv");
+  }
+
   // read over the preamble of the feature file
   for (int i = 0; i < 16; i++) {
     feature_file.get();
@@ -26,15 +31,23 @@ int main(int argc, char** argv) {
   for (int i = 0; i < num_examples; i++) {
     // first output the label.  Divide into < 5 and >= 5.
     int label = label_file.get();
-    std::cout << (int)(label < 5) << ",";
-    std::cerr << label << "\t";
+
+    // std::cout << (int)(label < 5) << ",";
+
+    // // each image is 28*28
+    // for (int j = 0; j < 28*28; j++) {
+    //   int pval = feature_file.get();
+    //   std::cout << pval << ",";
+    // }
+    // std::cout << std::endl;
     
+    digit_files[label] << (int)(label < 5) << ",";
     // each image is 28*28
     for (int j = 0; j < 28*28; j++) {
       int pval = feature_file.get();
-      std::cout << pval << ",";
+      digit_files[label] << pval << ",";
     }
-    std::cout << std::endl;
+    digit_files[label] << std::endl;
   }
 
   return 0;

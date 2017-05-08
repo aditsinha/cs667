@@ -2,7 +2,7 @@
 #ifndef OBLIV_MATH_DEF_H__
 #define OBLIV_MATH_DEF_H__
 
-#define PRECISION 28
+#define PRECISION 24
 #define TAYLOR_ORDER 7
 extern double sigmoid_taylor_d[];
 extern long* sigmoid_taylor;

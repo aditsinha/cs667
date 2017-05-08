@@ -5,6 +5,7 @@
 #include <obliv.oh>
 #include <stdio.h>
 #include <sys/time.h>
+#include <time.h>
 #include <math.h>
 
 #define USE_OBLIV_INT
@@ -12,6 +13,8 @@
 #undef USE_OBLIV_INT
 
 void do_gradient_train(void* args) {
+  srand(time(NULL)*ocCurrentParty());
+  
   gradientProtocolIO* io = args;
   configuration_t* config = io->config;
   party_t* party = io->party;
@@ -36,8 +39,8 @@ void do_gradient_train(void* args) {
 
     feedOblivIntArray(grad1, gradient, num_features+1, 1);
     feedOblivIntArray(grad2, gradient, num_features+1, 2);
-
-    obliv int* noise = generate_noise_vec(num_features+1, noise_sd, precision);
+    
+    obliv long* noise = generate_noise_vec(num_features+1, noise_sd, precision);
 
     for (int j = 0; j < num_features+1; j++) {
       grad_sum[j] = grad1[j] + grad2[j] + noise[j];

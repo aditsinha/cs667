@@ -52,7 +52,8 @@ double PrivacyParams::getMomentsAccountStandardDev(double gradient_clip, int bat
 }
 
 double PrivacyParams::getRegularizedRegressionStandardDev(double regularization, int population_size) {
-  double l2_sens = 2 / (sqrt(population_size) * regularization);
+  // double l2_sens = 2 / (sqrt(population_size) * regularization);
+  double l2_sens = 2 / (population_size * regularization);
 
   double d = sqrt(2 * log(1.25/delta));
   return d * l2_sens / epsilon;

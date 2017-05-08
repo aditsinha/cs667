@@ -22,6 +22,11 @@ int main(int argc, char** argv) {
   std::ifstream data_file(argv[2]);
 
   Configuration config(config_file);
+  bool use_noise = (config.n != 0);
+  if (config.n == 0) {
+    config.n = 1;
+  }
+  
   std::vector<Party*> parties;
 
   for (int i = 0; i < config.n; i++) {
@@ -38,7 +43,7 @@ int main(int argc, char** argv) {
   Party validation(&config, validation_file, false);
 
   Eigen::VectorXd trained;
-  trained = gradient_train_simulation(parties, &config);
+  trained = gradient_train_simulation(parties, &config, use_noise);
   
   // std::cout << "Training Accuracy " << parties[0]->Accuracy(trained) << std::endl;
   std::cout << "Validation Accuracy " << validation.Accuracy(trained) << std::endl;

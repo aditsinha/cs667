@@ -15,8 +15,13 @@ configuration_t* GetConfiguration(char* filename) {
   return new configuration_t{c};
 }
 
-party_t* GetParty(configuration_t* config, char* data_filename, int is_training) {
+party_t* GetParty(configuration_t* config, char* data_filename, int is_training, int skip_rows=0) {
   std::ifstream data_stream(data_filename);
+
+  for (int i = 0; i < skip_rows; i++) {
+    std::string temp;
+    std::getline(data_stream, temp);
+  }
 
   auto p = new Party((Configuration*)config->data, data_stream, is_training);
   

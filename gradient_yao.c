@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
   srand(time(NULL));
 
   configuration_t* config = GetConfiguration(argv[3]);
-  party_t* party = GetParty(config, argv[4], 1);
+  party_t* party = GetParty(config, argv[4], 1, 0);
   model_t* model = InitialModel(config);
 
   connectTcpOrDie(&pd, argv[2], argv[1]);
@@ -35,7 +35,12 @@ int main(int argc, char* argv[]) {
 
   printf("Training Accuracy: %g\n", EvaluateModel(party, model));
   if (strcmp(argv[2], "--") == 0) {
-    party_t* validation = GetParty(config, argv[5], 0);
+    party_t* validation;
+    if (argc == 5) {
+      validation = GetParty(config, argv[4], 0, GetDataRowCount(party));
+    } else {
+      validation = GetParty(config, argv[5], 0, 0);
+    }
     printf("Validation Accuracy: %g\n", EvaluateModel(validation, model));
   }
 

@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
   }
 
   configuration_t* config = GetConfiguration(argv[3]);
-  party_t* party = GetParty(config, argv[4], 1);
+  party_t* party = GetParty(config, argv[4], 1, 0);
   int num_features = GetDataFeatureCount(party);
   int num_entries = GetDataRowCount(party);
 
@@ -36,7 +36,13 @@ int main(int argc, char* argv[]) {
   printf("Training Accuracy: %g\n", accuracy);
 
   if (strcmp(argv[2], "--") == 0) {
-    party_t* validation = GetParty(config, argv[5], 0);
+    party_t* validation;
+    if (argc == 5) {
+      validation = GetParty(config, argv[4], 0, GetDataRowCount(party));  
+    } else {
+      validation = GetParty(config, argv[5], 0, 0);
+    }
+    
     printf("Validation Accuracy: %g\n", EvaluateModel(validation, model));
   }
 

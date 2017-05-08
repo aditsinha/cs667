@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
   configuration_t* GetConfiguration(char* filename);
-  party_t* GetParty(configuration_t* config, char* data_filename, int is_training);
+  party_t* GetParty(configuration_t* config, char* data_filename, int is_training, int skip_rows);
   int* ComputeGradient(party_t* party, model_t* model);
   int* ComputeNoisyGradient(party_t* party, model_t* model);
   void UpdateModel(model_t* model, int step_num, int* gradient);

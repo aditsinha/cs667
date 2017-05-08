@@ -64,6 +64,9 @@ Configuration::Configuration(std::ifstream& config_file) :
       privacy.epsilon = std::stof(v);
       std::getline(s_privacy, v, ',');
       privacy.delta = std::stof(v);
+
+      std::cout << "Privacy: " << privacy.epsilon << ", " << privacy.delta << "\n";
+      
     } else if (key == "epochs") {
       epochs = std::stoi(value);
     } else if (key == "initial_learning_rate") {

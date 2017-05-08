@@ -15,13 +15,13 @@ double getLearningRate(double initial, double decay, int epoch) {
   return initial / (1 + decay * epoch);
 }
 
-Eigen::VectorXd gradient_train_simulation(std::vector<Party*> p, Configuration* c) {
+Eigen::VectorXd gradient_train_simulation(std::vector<Party*> p, Configuration* c, bool use_noise) {
   // TODO need to change the way noise is generated
   Eigen::VectorXd params = Eigen::VectorXd::Zero(c->d + 1);
 
   int num_batches_per_epoch = c->m / c->batch_size;
 
-  int effective_epochs = c->epochs / c->n;
+  int effective_epochs = c->epochs / sqrt(c->n);
 
   for (int i = 0; i < effective_epochs; i++) {
     double learning_rate = getLearningRate(c, i*num_batches_per_epoch);
@@ -33,29 +33,36 @@ Eigen::VectorXd gradient_train_simulation(std::vector<Party*> p, Configuration* 
     
       for (auto party : p) {
 	auto local_gradient = party->ComputeGradient(c, params);
-	if (c->n > 2) {
+	if (use_noise && c->n > 2) {
 	  // and multiparty noise
 	  local_gradient +=
 	    c->privacy.generateLogisticRegressionMPCNoise(c->clipping,
 							  c->batch_size, c->m,
 							  effective_epochs, c->d, c->n);
+	  local_gradient = reduceVectorPrecision(local_gradient, c->fractional_bits);
 	}
-	  
-	gradient += reduceVectorPrecision(local_gradient, c->fractional_bits);
+
+	gradient += local_gradient;
       }
 
-      if (c->n == 1 || c-> n == 2) {
-	// add solo/two party noise
-	gradient +=
-	  reduceVectorPrecision(c->privacy.generateLogisticRegressionNoise(c->clipping,
-									   c->batch_size, c->m,
-									   effective_epochs, c->d),
-				c->fractional_bits);
+      if (use_noise && (c->n == 1 || c-> n == 2)) {
+      	// add solo/two party noise
+      	gradient +=
+      	  reduceVectorPrecision(c->privacy.generateLogisticRegressionNoise(c->clipping,
+      									   c->batch_size, c->m,
+      									   effective_epochs, c->d),
+      				c->fractional_bits);
       }
+
+
 
       params = params - gradient * learning_rate;
     }
   }
+
+  std::cout << "Training Accuracy " << p[0]->Accuracy(params) << std::endl;
+
+  // std::cout << std::endl << params << std::endl;
 
   return params;
 }
